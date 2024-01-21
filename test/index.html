@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+</head>
+<body>
+
+    <h1>File Upload</h1>
+
+    <!-- Audio Section -->
+    <h2>Audio Upload</h2>
+    <form id="audioForm" enctype="multipart/form-data">
+        <label for="audioInput">Select Audio File (.mp3):</label>
+        <input type="file" id="audioInput" name="file" accept=".mp3">
+        <br>
+        <button type="button" onclick="uploadAudio()">Upload Audio</button>
+    </form>
+
+    <!-- Video Section -->
+    <h2>Video Upload</h2>
+    <form id="videoForm" enctype="multipart/form-data">
+        <label for="videoInput">Select Video File (.mp4):</label>
+        <input type="file" id="videoInput" name="file" accept=".mp4">
+        <br>
+        <button type="button" onclick="uploadVideo()">Upload Video</button>
+    </form>
+
+    <!-- Image Section -->
+    <h2>Image Upload</h2>
+    <form id="imageForm" enctype="multipart/form-data">
+        <label for="imageInput">Select Image File:</label>
+        <input type="file" id="imageInput" name="file" accept="image/*">
+        <br>
+        <button type="button" onclick="uploadImage()">Upload Image</button>
+    </form>
+
+    <div id="audioResult"></div>
+    <div id="videoResult"></div>
+    <div id="imageResult"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
