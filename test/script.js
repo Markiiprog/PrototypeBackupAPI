@@ -1,16 +1,16 @@
 async function uploadAudio() {
     const fileInput = document.getElementById('audioInput');
-    await uploadFile(fileInput, 'http://localhost:8000/transcribe/audio', 'audioResult');
+    await uploadFile(fileInput, 'http://192.168.0.2:8000/transcribe/audio', 'audioResult');
 }
 
 async function uploadVideo() {
     const fileInput = document.getElementById('videoInput');
-    await uploadFile(fileInput, 'http://localhost:8000/transcribe/video', 'videoResult');
+    await uploadFile(fileInput, 'http://192.168.0.2:8000/transcribe/video', 'videoResult');
 }
 
 async function uploadImage() {
     const fileInput = document.getElementById('imageInput');
-    await uploadFile(fileInput, 'http://localhost:8000/transcribe/image', 'imageResult');
+    await uploadFile(fileInput, 'http://192.168.0.2:8000/transcribe/image', 'imageResult');
 }
 
 
@@ -38,6 +38,7 @@ async function uploadFile(fileInput, endpoint, resultDivId) {
                 // Display the result
                 const resultDiv = document.getElementById(resultDivId);
                 resultDiv.innerHTML = `<p>Transcription: ${data.Transcription}</p>`;
+                resultDiv.innerHTML += `<p>Transcription to Braille: ${data.Braille}</p>`;
             } else {
                 console.error('Unexpected API response format:', data);
             }

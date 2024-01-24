@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -42,14 +42,14 @@ def predict(filepath):
         img_gray =cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         adptThresh = cv2.adaptiveThreshold(img_gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
     cv2.THRESH_BINARY,11,2)
-        plt.imshow(adptThresh,cmap='gray')
+        # plt.imshow(adptThresh,cmap='gray')
         return adptThresh
 
     adpt_thresh_img = adptThresholding(median_filtered)
 
     def thresholding(image):
         ret, thresh = cv2.threshold(image,127,255,cv2.THRESH_BINARY_INV)
-        plt.imshow(thresh,cmap='gray')
+        # plt.imshow(thresh,cmap='gray')
         return thresh
 
     thresh_img = thresholding(adpt_thresh_img)
