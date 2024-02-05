@@ -29,6 +29,8 @@ Temporary Items
 audio_cache/
 pretrained_models/
 path/
+test/
+audios/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

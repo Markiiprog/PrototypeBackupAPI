@@ -1,11 +1,12 @@
 import cv2
 import numpy as np
-# import matplotlib.pyplot as plt
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
 
+from load_OCR import LoadModel
+from src.predict import perform_prediction
 def predict(filepath):
     img = cv2.imread(filepath)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -42,14 +43,12 @@ def predict(filepath):
         img_gray =cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         adptThresh = cv2.adaptiveThreshold(img_gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
     cv2.THRESH_BINARY,11,2)
-        # plt.imshow(adptThresh,cmap='gray')
         return adptThresh
 
     adpt_thresh_img = adptThresholding(median_filtered)
 
     def thresholding(image):
         ret, thresh = cv2.threshold(image,127,255,cv2.THRESH_BINARY_INV)
-        # plt.imshow(thresh,cmap='gray')
         return thresh
 
     thresh_img = thresholding(adpt_thresh_img)
@@ -82,46 +81,49 @@ def predict(filepath):
     # Variable to store predictions with order
     all_predictions_with_order = []
 
-    def process_line(line, line_order):
+    crnn = LoadModel()
+
+    # Variable to store predictions
+    all_predictions = ""
+
+    for i, line in enumerate(sorted_contours_lines):
+        # ROI per line
         x, y, w, h = cv2.boundingRect(line)
         roi_line = dilated2[y:y + h, x:x + w]
 
-        (cnt, _) = cv2.findContours(roi_line.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        sorted_contours_words = sorted(cnt, key=lambda cntr: cv2.boundingRect(cntr)[0])
+        # Draw counters per word
+        (cnt, hierarchy) = cv2.findContours(roi_line.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        sorted_contours_words = sorted(cnt, key=lambda cntr: cv2.boundingRect(cntr)[0])  # Sorts line from left to right
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            batch_temp_file_paths = []
+        # Set batch size based on the number of words in the line
+        batch_size = len(sorted_contours_words)
 
-            for word in sorted_contours_words:
-                x2, y2, w2, h2 = cv2.boundingRect(word)
-                cv2.rectangle(img3, (x + x2, y + y2), (x + x2 + w2, y + y2 + h2), (0, 50, 100), 2)
-                cropped_img = img3[y + y2: y + y2 + h2, x + x2: x + x2 + w2]
+        batch_temp_file_paths = []
 
-                # Save the cropped image to a temporary file
-                temp_file_path = os.path.join(temp_dir, "temp_cropped_img{}.png".format(len(batch_temp_file_paths)))
-                cv2.imwrite(temp_file_path, cropped_img)
-                batch_temp_file_paths.append(temp_file_path)
+        for word in sorted_contours_words:
+            x2, y2, w2, h2 = cv2.boundingRect(word)
+            cv2.rectangle(img3, (x + x2, y + y2), (x + x2 + w2, y + y2 + h2), (0, 50, 100), 2)
+            cropped_img = img3[y + y2: y + y2 + h2, x + x2: x + x2 + w2].copy()
+
+            # Save the cropped image to a temporary file
+            temp_file_path = "temp_cropped_img{}.png".format(len(batch_temp_file_paths))
+            cv2.imwrite(temp_file_path, cropped_img)
+            batch_temp_file_paths.append(temp_file_path)
 
             # Execute the script with the paths to the temporary files (batch)
-            batch_command = ["python", "src/predict.py"] + batch_temp_file_paths
-            prediction_batch = subprocess.check_output(batch_command, universal_newlines=True).splitlines()
-
-
+            prediction_batch = perform_prediction([temp_file_path], crnn, decode_method='beam_search', beam_size=10)
             # Concatenate predictions with space between words
-            line_prediction = " ".join(prediction_batch)
-            all_predictions_with_order.append((line_order, line_prediction))
+            
+        all_predictions += " ".join(prediction_batch) + " "
+        print(all_predictions)
+        # Remove the temporary files
+        for temp_file_path in batch_temp_file_paths:
+            os.remove(temp_file_path)
 
-    # Use ThreadPoolExecutor's map method to maintain order
-    with ThreadPoolExecutor() as executor:
-        for i, line in enumerate(sorted_contours_lines):
-            executor.submit(process_line, line, i)
-
-
-    # Sort predictions based on original order
-    all_predictions_with_order.sort(key=lambda x: x[0])
-
-    # Extract predictions for final result
-    all_predictions_result = "\n".join(prediction for _, prediction in all_predictions_with_order)
-
-    # Print or use the 'all_predictions_result' variable as needed
-    return all_predictions_result
+        # Add a line break after processing each line, except for the last line
+        if i < len(sorted_contours_lines) - 1:
+            all_predictions += "\n"
+        #print(all_predictions_result)
+        # Print or use the 'all_predictions_result' variable as needed
+            
+    return all_predictions
