@@ -1,14 +1,16 @@
-import os
+import speechbrain as sb
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from speechbrain.pretrained import EncoderDecoderASR
-from preprocess import MP32Wav, Video2Wav
-from OCR_Predict import Predict
-from alphaToBraille import translate as alpha_to_braille
-from brailleToAlpha import translate as braille_to_alpha
-from postProcess import perform_spell_check, perform_punctuation_check
+import os
 
-app = FastAPI()
+from preprocess import MP32Wav, Video2Wav
+from OCR import perform_ocr
+from loadModels import OCR_Model, ASR_Model
+from generateFiles import create_word_document,create_brf_file
+from pybraille import pybrl as brl
+
+app = FastAPI()  #uvicorn main:app --reload (This runs starts a local instance of the 
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,7 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-AUDIODIR = 'audios/'
+reader = OCR_Model()
+asr_model = ASR_Model()
+
+OUTPUTDIR = 'outputs/'
 
 @app.get('/')
 async def root():
@@ -32,6 +37,10 @@ async def transcribe_audio(file: UploadFile = File(...)):
         # Save the uploaded file to the audios directory
         file_path = file.filename
         temp_filepath = file_path
+
+        upload_dir = OUTPUTDIR
+      
+        name, _ = os.path.splitext(file.filename) 
         
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
@@ -43,22 +52,27 @@ async def transcribe_audio(file: UploadFile = File(...)):
         else:
             return {"error": "Unsupported file type"}
         
-        # Transcribe the audio using the ASR model
-        asr_model = EncoderDecoderASR.from_hparams(
-            source="speechbrain/asr-crdnn-rnnlm-librispeech",
-            savedir="pretrained_models/asr-crdnn-rnnlm-librispeech",
-        )
         transcription = asr_model.transcribe_file(file_path)
+        brltext = brl.translate(transcription) 
+        brltext = brl.toUnicodeSymbols(brltext, flatten=True)
 
-        # Convert transcription to Braille
-        braille_text = alpha_to_braille(transcription)
-
-        # Remove the temporary files
+        docx_filename  = upload_dir + name + '.doc'
+        create_word_document(docx_filename,transcription)
+        # Remove the temporary filez
         os.remove(temp_filepath)
         os.remove(file_path)
+        
+        print("Transcription:"+ transcription)
+        print("Braille:" +brltext)
 
-        return {"Transcription": transcription, "Braille": braille_text}
+        # return FileResponse(
+        #     docx_filename,
+        #     filename=name+'.doc',
+        #     media_type="application/msword",
+        # )
 
+        return {"Transcription": transcription, "Braille": brltext}
+    
     except Exception as e:
         return {"error": f"Error processing file: {str(e)}"}
 
@@ -69,6 +83,11 @@ async def transcribe_video(file: UploadFile = File(...)):
         file_path = file.filename
         temp_filepath = file_path
         
+        upload_dir = OUTPUTDIR
+      
+        name, _ = os.path.splitext(file.filename) 
+
+
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
 
@@ -77,22 +96,27 @@ async def transcribe_video(file: UploadFile = File(...)):
             file_path = Video2Wav(file_path, "audios", f"{file_name}.wav")
         else:
             return {"error": "Unsupported file type"}
-
-        # Transcribe the video using the ASR model
-        asr_model = EncoderDecoderASR.from_hparams(
-            source="speechbrain/asr-crdnn-rnnlm-librispeech",
-            savedir="pretrained_models/asr-crdnn-rnnlm-librispeech",
-        )
+        
         transcripted_text = asr_model.transcribe_file(file_path)
+        brltext = brl.translate(transcripted_text) 
+        brltext = brl.toUnicodeSymbols(brltext, flatten=True)
 
-        # Convert transcription to Braille
-        braille_text = alpha_to_braille(transcripted_text)
-
-        # Remove the temporary files
+        docx_filename  = upload_dir + name + '.doc'
+        create_word_document(docx_filename,transcripted_text)
+        # Remove the temporary file
         os.remove(temp_filepath)
         os.remove(file_path)
 
-        return {"Transcription": transcripted_text, "Braille": braille_text}
+        print("Transcription:"+ transcripted_text)
+        print("Braille:" + brltext)
+
+        # return FileResponse(
+        #     docx_filename,
+        #     filename=name+'.doc',
+        #     media_type="application/msword",
+        # )
+
+        return {"Transcription": transcripted_text, "Braille": brltext}
 
     except Exception as e:
         return {"error": f"Error processing file: {str(e)}"}
@@ -100,34 +124,50 @@ async def transcribe_video(file: UploadFile = File(...)):
 @app.post('/transcribe/image')
 async def transcribe_image(file: UploadFile = File(...)):
     try:
-        upload_dir = 'path/to/uploaded/files'
-        os.makedirs(upload_dir, exist_ok=True)
-        file_path = os.path.join(upload_dir, file.filename)
+        # Define a directory to save uploaded files
+        upload_dir = OUTPUTDIR
+      
+        name, _ = os.path.splitext(file.filename) 
 
+        # Ensure the directory exists; create it if necessary
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Combine the directory and the file name to get the full file path
+        file_path = os.path.join(upload_dir, file.filename)
+        
+        # Save the uploaded file to the specified directory
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
 
-        # Perform OCR on the image
-        transcripted_text = Predict(file_path)
+        # Perform transcription using the full file path
+        transcripted_text = perform_ocr(file_path,reader)
+        #braille_text = alpha_to_braille(transcripted_text)
+        
+        brltext = brl.translate(transcripted_text) 
+        brltext = brl.toUnicodeSymbols(brltext, flatten=True)   
 
-        # Perform spell check
-        transcripted_text = perform_spell_check(transcripted_text)
+        docx_filename  = upload_dir + name + '.doc'
+        #brf_filename  = name +'. brf'
 
-        # Perform punctuation check
-        transcripted_text = perform_punctuation_check(transcripted_text)
-
-        # Convert transcription to Braille
-        braille_text = alpha_to_braille(transcripted_text)
+        create_word_document(docx_filename,transcripted_text)
+        #create_brf_file(brf_filename,brf_filename)
 
         # Remove the temporary file
         os.remove(file_path)
+        #os.remove(name + '.doc')
+        print("Transcription:"+ transcripted_text)
+        print("Braille:" +brltext)
 
-        return {"Transcription": transcripted_text, "Braille": braille_text}
+        # return FileResponse(
+        #     docx_filename,
+        #     filename=name+'.doc',
+        #     media_type="application/msword",
+        # )
 
+        return {"Transcription": transcripted_text, "Braille": brltext}
+    
     except Exception as e:
+        # Log the error for debugging purposes
         print(f"Error processing file: {str(e)}")
+        # Raise an HTTPException with a 500 status code
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

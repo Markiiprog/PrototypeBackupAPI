@@ -18,3 +18,7 @@ torchaudio==2.1.2
 tqdm==4.66.1
 uvicorn==0.25.0
 soundfile==0.12.1
+easyocr==1.7.1
+asciimathml==0.9.5.1
+pdfminer==20191125
+six
