@@ -3,6 +3,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import shutil
 
 from preprocess import MP32Wav, Video2Wav
 from OCR import perform_ocr
@@ -24,6 +25,7 @@ reader = OCR_Model()
 asr_model = ASR_Model()
 
 OUTPUTDIR = 'outputs/'
+AUDIODIR = 'audio_cache'
 
 @app.get('/')
 async def root():
@@ -31,47 +33,48 @@ async def root():
         'ASR API': 'Active'
     }
 
-@app.post(f'/transcribe/audio')
+@app.post('/transcribe/audio')
 async def transcribe_audio(file: UploadFile = File(...)):
     try:
-        # Save the uploaded file to the audios directory
-        file_path = file.filename
-        temp_filepath = file_path
-
-        upload_dir = OUTPUTDIR
-      
-        name, _ = os.path.splitext(file.filename) 
+        # Ensure the directory exists; create it if necessary
+        os.makedirs(OUTPUTDIR, exist_ok=True)
         
+        # Save the uploaded file to the specified directory
+        file_path = os.path.join(AUDIODIR, file.filename)
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
-
-        file_name, file_extension = os.path.splitext(file_path)
-
-        if file_extension == ".mp3":
-           file_path = MP32Wav(file_path, "audios", f"{file_name}.wav")
-        else:
-            return {"error": "Unsupported file type"}
         
+        # Check file extension and process accordingly
+        name, ext = os.path.splitext(file_path)
+        if ext == ".mp3":
+            # Convert MP3 to WAV if necessary
+            # Replace this with your conversion function (MP32Wav)
+            file_path = MP32Wav(file_path, OUTPUTDIR, f"{name}.wav")
+            if not file_path:
+                return {"error": "Failed to convert MP3 to WAV"}
+        
+        # Transcribe audio file
         transcription = asr_model.transcribe_file(file_path)
+        # Assuming asr_model is properly defined elsewhere
         brltext = brl.translate(transcription) 
         brltext = brl.toUnicodeSymbols(brltext, flatten=True)
 
-        docx_filename  = upload_dir + name + '.doc'
-        create_word_document(docx_filename,transcription)
-        # Remove the temporary filez
-        os.remove(temp_filepath)
-        os.remove(file_path)
+        # Move the file to the output directory
+        new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
+        shutil.move(file_path, new_file_path)
+
+        # Generate document
+        docx_filename = os.path.join(OUTPUTDIR, os.path.splitext(os.path.basename(file_path))[0] + '.doc')
+        create_word_document(docx_filename, transcription)
         
         print("Transcription:"+ transcription)
-        print("Braille:" +brltext)
+        print("Braille:" + brltext)
 
-        # return FileResponse(
-        #     docx_filename,
-        #     filename=name+'.doc',
-        #     media_type="application/msword",
-        # )
-
-        return {"Transcription": transcription, "Braille": brltext}
+        return FileResponse(
+            docx_filename,
+            filename=os.path.basename(docx_filename),
+            media_type="application/msword"
+        )
     
     except Exception as e:
         return {"error": f"Error processing file: {str(e)}"}
@@ -79,44 +82,41 @@ async def transcribe_audio(file: UploadFile = File(...)):
 @app.post(f'/transcribe/video')
 async def transcribe_video(file: UploadFile = File(...)):
     try:
-        # Save the uploaded file to the audios directory
-        file_path = file.filename
-        temp_filepath = file_path
+        # Ensure the directory exists; create it if necessary
+        os.makedirs(OUTPUTDIR, exist_ok=True)
         
-        upload_dir = OUTPUTDIR
-      
-        name, _ = os.path.splitext(file.filename) 
-
-
+        # Save the uploaded file to the specified directory
+        file_path = os.path.join(AUDIODIR, file.filename)
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
-
-        file_name, file_extension = os.path.splitext(file_path)
-        if file_extension == ".mp4":
-            file_path = Video2Wav(file_path, "audios", f"{file_name}.wav")
-        else:
-            return {"error": "Unsupported file type"}
         
+        # Check file extension and process accordingly
+        name, ext = os.path.splitext(file_path)
+        if ext == ".mp4":
+            # Convert MP3 to WAV if necessary
+            # Replace this with your conversion function (MP32Wav)
+            file_path = Video2Wav(file_path, OUTPUTDIR, f"{name}.wav")
+            if not file_path:
+                return {"error": "Failed to convert MP4 to WAV"}
+
         transcripted_text = asr_model.transcribe_file(file_path)
         brltext = brl.translate(transcripted_text) 
         brltext = brl.toUnicodeSymbols(brltext, flatten=True)
 
-        # docx_filename  = upload_dir + name + '.doc'
-        # create_word_document(docx_filename,transcripted_text)
-        # Remove the temporary file
-        os.remove(temp_filepath)
-        os.remove(file_path)
+        new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
+        shutil.move(file_path, new_file_path)
+
+        docx_filename = os.path.join(OUTPUTDIR, os.path.splitext(os.path.basename(file_path))[0] + '.doc')
+        create_word_document(docx_filename,transcripted_text)
 
         print("Transcription:"+ transcripted_text)
         print("Braille:" + brltext)
 
-        # return FileResponse(
-        #     docx_filename,
-        #     filename=name+'.doc',
-        #     media_type="application/msword",
-        # )
-
-        return {"Transcription": transcripted_text, "Braille": brltext}
+        return FileResponse(
+            docx_filename,
+            filename=name+'.doc',
+            media_type="application/msword",
+        )
 
     except Exception as e:
         return {"error": f"Error processing file: {str(e)}"}
@@ -158,13 +158,11 @@ async def transcribe_image(file: UploadFile = File(...)):
         print("Transcription:"+ transcripted_text)
         print("Braille:" +brltext)
 
-        # return FileResponse(
-        #     docx_filename,
-        #     filename=name+'.doc',
-        #     media_type="application/msword",
-        # )
-
-        return {"Transcription": transcripted_text, "Braille": brltext}
+        return FileResponse(
+            docx_filename,
+            filename=name+'.doc',
+            media_type="application/msword",
+        )
     
     except Exception as e:
         # Log the error for debugging purposes
