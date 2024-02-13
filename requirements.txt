@@ -22,3 +22,4 @@ easyocr==1.7.1
 asciimathml==0.9.5.1
 pdfminer==20191125
 six
+python-docx

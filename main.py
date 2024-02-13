@@ -101,8 +101,8 @@ async def transcribe_video(file: UploadFile = File(...)):
         brltext = brl.translate(transcripted_text) 
         brltext = brl.toUnicodeSymbols(brltext, flatten=True)
 
-        docx_filename  = upload_dir + name + '.doc'
-        create_word_document(docx_filename,transcripted_text)
+        # docx_filename  = upload_dir + name + '.doc'
+        # create_word_document(docx_filename,transcripted_text)
         # Remove the temporary file
         os.remove(temp_filepath)
         os.remove(file_path)
