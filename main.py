@@ -54,6 +54,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
                 return {"error": "Failed to convert MP3 to WAV"}
         
         # Transcribe audio file
+        print(file_path)
         transcription = asr_model.transcribe_file(file_path)
         # Assuming asr_model is properly defined elsewhere
         brltext = brl.translate(transcription) 
@@ -62,13 +63,15 @@ async def transcribe_audio(file: UploadFile = File(...)):
         # Move the file to the output directory
         new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
         shutil.move(file_path, new_file_path)
-
+        
         # Generate document
         docx_filename = os.path.join(OUTPUTDIR, os.path.splitext(os.path.basename(file_path))[0] + '.doc')
         create_word_document(docx_filename, transcription)
         
         print("Transcription:"+ transcription)
         print("Braille:" + brltext)
+
+        os.remove(new_file_path)
 
         # return FileResponse(
         #     docx_filename,
@@ -113,6 +116,8 @@ async def transcribe_video(file: UploadFile = File(...)):
 
         print("Transcription:"+ transcripted_text)
         print("Braille:" + brltext)
+
+        os.remove(new_file_path)
 
         # return FileResponse(
         #     docx_filename,
