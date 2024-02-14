@@ -70,11 +70,13 @@ async def transcribe_audio(file: UploadFile = File(...)):
         print("Transcription:"+ transcription)
         print("Braille:" + brltext)
 
-        return FileResponse(
-            docx_filename,
-            filename=os.path.basename(docx_filename),
-            media_type="application/msword"
-        )
+        # return FileResponse(
+        #     docx_filename,
+        #     filename=os.path.basename(docx_filename),
+        #     media_type="application/msword"
+        # )
+
+        return {"Transcription": transcription, "Braille": brltext}
     
     except Exception as e:
         return {"error": f"Error processing file: {str(e)}"}
@@ -112,12 +114,12 @@ async def transcribe_video(file: UploadFile = File(...)):
         print("Transcription:"+ transcripted_text)
         print("Braille:" + brltext)
 
-        return FileResponse(
-            docx_filename,
-            filename=name+'.doc',
-            media_type="application/msword",
-        )
-
+        # return FileResponse(
+        #     docx_filename,
+        #     filename=name+'.doc',
+        #     media_type="application/msword",
+        # )
+        return {"Transcription": transcripted_text, "Braille": brltext}
     except Exception as e:
         return {"error": f"Error processing file: {str(e)}"}
 
@@ -158,12 +160,13 @@ async def transcribe_image(file: UploadFile = File(...)):
         print("Transcription:"+ transcripted_text)
         print("Braille:" +brltext)
 
-        return FileResponse(
-            docx_filename,
-            filename=name+'.doc',
-            media_type="application/msword",
-        )
-    
+        # return FileResponse(
+        #     docx_filename,
+        #     filename=name+'.doc',
+        #     media_type="application/msword",
+        # )
+
+        return {"Transcription": transcripted_text, "Braille": brltext}
     except Exception as e:
         # Log the error for debugging purposes
         print(f"Error processing file: {str(e)}")
