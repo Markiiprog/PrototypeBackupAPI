@@ -13,7 +13,7 @@ from loadModels import OCR_Model, ASR_Model
 from generateFiles import create_word_document,create_brf_file,create_pef_file
 from docInput import extract_text_from_file
 from convertText import convert_to_braille
-
+from typing import Dict
 
 app = FastAPI()  #uvicorn main:app --reload (This runs starts a local instance of the 
 
@@ -39,6 +39,15 @@ def get_download_links(filename: str) -> dict:
         "brf": f"{base_url}/download/outputs/{filename}(transcription).brf"
     }
     return download_links
+
+def get_response_content(filename: str, transcription: str, brf: str, pef: str) -> Dict[str, str]:
+    download_links = get_download_links(filename)
+    response_content = {
+        "Transcription": transcription,
+        "Braille": brf,
+        "download_links": download_links
+    }
+    return response_content
 
 @app.get('/')
 async def root():
@@ -87,10 +96,15 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
         os.remove(new_file_path)
 
-        download_links = get_download_links(name)
+        # download_links = get_download_links(name)
+
+        response_content = get_response_content(name, transcription, brf, pef)
+
+        #returnJSON with braille and transcription
+        return JSONResponse(content=response_content)
 
         # Return JSON response with download links
-        return JSONResponse(content=download_links)
+        # return JSONResponse(content=download_links)
     
     except Exception as e:
         # Log the error for debugging purposes
@@ -136,10 +150,15 @@ async def transcribe_video(file: UploadFile = File(...)):
 
         os.remove(new_file_path)
 
-        download_links = get_download_links(name)
+        # download_links = get_download_links(name)
+
+        response_content = get_response_content(name, transcripted_text, brf, pef)
+
+        #returnJSON with braille and transcription
+        return JSONResponse(content=response_content)
 
         # Return JSON response with download links
-        return JSONResponse(content=download_links)
+        # return JSONResponse(content=download_links)
     
     except Exception as e:
         # Log the error for debugging purposes
@@ -180,10 +199,15 @@ async def transcribe_image(file: UploadFile = File(...)):
 
         os.remove(new_file_path)
 
-        download_links = get_download_links(name)
+        # download_links = get_download_links(name)
+
+        response_content = get_response_content(name, transcripted_text, brf, pef)
+
+        #returnJSON with braille and transcription
+        return JSONResponse(content=response_content)
 
         # Return JSON response with download links
-        return JSONResponse(content=download_links)
+        # return JSONResponse(content=download_links)
     
     except Exception as e:
         # Log the error for debugging purposes
@@ -225,10 +249,15 @@ async def transcribe_documents(file: UploadFile = File(...)):
 
         os.remove(new_file_path)
 
-        download_links = get_download_links(name)
+        # download_links = get_download_links(name)
+
+        response_content = get_response_content(name, transcripted_text, brf, pef)
+
+        #returnJSON with braille and transcription
+        return JSONResponse(content=response_content)
 
         # Return JSON response with download links
-        return JSONResponse(content=download_links)
+        # return JSONResponse(content=download_links)
     
     except Exception as e:
         # Log the error for debugging purposes
@@ -252,8 +281,13 @@ async def transcribe_textIn(input_string: str):
 
     download_links = get_download_links(name)
     
+    response_content = get_response_content(name, input_string, brf, pef)
+
+    #returnJSON with braille and transcription
+    return JSONResponse(content=response_content)
+
     # Return JSON response with download links
-    return JSONResponse(content=download_links)
+    # return JSONResponse(content=download_links)
 
 @app.get('/download/outputs/{file_path:path}')
 async def download_file(file_path: str):
