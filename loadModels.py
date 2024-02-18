@@ -13,7 +13,7 @@ def OCR_Model():
     # Create an OCR reader with the specified language (custom recognition model)
     custom_model_path = 'ocr_finetuned'
 
-    reader =  easyocr.Reader(['en'],recog_network='fine_tuned_recognition',model_storage_directory=custom_model_path,user_network_directory=custom_model_path,gpu=True) 
+    reader =  easyocr.Reader(['en'],recog_network='fine_tuned_recognition',model_storage_directory=custom_model_path,user_network_directory=custom_model_path,gpu=False) 
 
     return reader
 
@@ -21,6 +21,6 @@ def ASR_Model():
     asr_model = EncoderDecoderASR.from_hparams(
     source="speechbrain/asr-crdnn-rnnlm-librispeech",
     savedir="pretrained_models/asr-crdnn-rnnlm-librispeech",
-    run_opts = {"device": "cuda"}
+    # run_opts = {"device": "cuda"}
 )
     return asr_model
