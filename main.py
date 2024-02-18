@@ -44,7 +44,7 @@ def get_response_content(filename: str, transcription: str, brf: str, pef: str) 
     download_links = get_download_links(filename)
     response_content = {
         "Transcription": transcription,
-        "Braille": brf,
+        "Braille": pef,
         "download_links": download_links
     }
     return response_content
