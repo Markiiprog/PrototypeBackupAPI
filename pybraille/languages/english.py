@@ -102,7 +102,7 @@ contractions = {
     'to' : 'ff',
     'were' : 'gg',
     'was' : '”',
-    'braille' : 'brl'
+    'braille' : 'brl',
 }
 
 specialCharacters = {
@@ -136,5 +136,5 @@ specialCharacters = {
     '[': '000001011011',
     ']': '011011001000',
     '€': '000100100010',
-    '@': '000100100000'
+    '@': '000100100000',
 }

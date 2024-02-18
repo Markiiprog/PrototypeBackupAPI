@@ -195,7 +195,7 @@ def detectLanguage(wrd, main_language = None, avoidMath = False):
 
     return targetAlphabet
 
-def translate(text, main_language = None):
+def translate(text, main_language = 'english'):
     """
     Translate text into Braille.
     
