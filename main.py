@@ -34,7 +34,7 @@ AUDIODIR = 'audio_cache/'
 def get_download_links(filename: str) -> dict:
     base_url = "http://34.142.200.21:8000"  # Change this to your FastAPI server address
     download_links = {
-        "docx": f"{base_url}/download/outputs/{filename}(transcription).doc",
+        "doc": f"{base_url}/download/outputs/{filename}(transcription).doc",
         "pef": f"{base_url}/download/outputs/{filename}(transcription).pef",
         "brf": f"{base_url}/download/outputs/{filename}(transcription).brf"
     }
@@ -279,7 +279,7 @@ async def transcribe_textIn(input_string: str):
     create_brf_file(brf_filename,brf)
 
 
-    download_links = get_download_links(name)
+    # download_links = get_download_links(name)
     
     response_content = get_response_content(name, input_string, brf, pef)
 
