@@ -79,6 +79,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         print(file_path)
         transcription = asr_model.transcribe_file(file_path)
         # Assuming asr_model is properly defined elsewhere
+        transcription = transcription.lower()
         brf,pef = convert_to_braille(transcription.lower())
 
         new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
@@ -133,6 +134,7 @@ async def transcribe_video(file: UploadFile = File(...)):
                 return {"error": "Failed to convert MP4 to WAV"}
 
         transcripted_text = asr_model.transcribe_file(file_path)
+        transcripted_text = transcripted_text.lower()
         brf,pef = convert_to_braille(transcripted_text.lower())
 
         new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
@@ -271,7 +273,7 @@ async def transcribe_text(request_data: dict):
         raise HTTPException(status_code=400, detail="Input string not provided")
 
     input_string = request_data['input_string']
-    
+
     brf,pef = convert_to_braille(input_string)
 
     name = 'text_input'
