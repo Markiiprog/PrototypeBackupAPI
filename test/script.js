@@ -1,11 +1,11 @@
 async function uploadAudio() {
     const fileInput = document.getElementById('audioInput');
-    await uploadFile(fileInput, 'http://192.168.0.2:8000/transcribe/audio', 'audioResult');
+    await uploadFile(fileInput, 'http://localost:8000/transcribe/audio', 'audioResult');
 }
 
 async function uploadVideo() {
     const fileInput = document.getElementById('videoInput');
-    await uploadFile(fileInput, 'http://192.168.0.2:8000/transcribe/video', 'videoResult');
+    await uploadFile(fileInput, 'http://localhost:8000/transcribe/video', 'videoResult');
 }
 
 async function uploadImage() {
