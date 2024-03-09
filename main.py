@@ -10,10 +10,11 @@ from preprocess import MP32Wav, Video2Wav
 from OCR import perform_ocr
 from loadModels import OCR_Model, ASR_Model
 from generateFiles import create_word_document, create_brf_file, create_pef_file
-from pybraille import pybrl as brl
+from docInput import extract_text_from_file
+from convertText2Braille import convert_to_braille
 from typing import Dict
 
-app = FastAPI()  #uvicorn main:app --reload (This runs starts a local instance of the 
+app = FastAPI()  # uvicorn main:app --reload (This runs starts a local instance of the server)
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,6 +30,7 @@ asr_model = ASR_Model()
 OUTPUTDIR = 'outputs/'
 AUDIODIR = 'audio_cache/'
 
+
 def get_download_links(filename: str) -> dict:
     base_url = "http://34.142.200.21:8000"  # Change this to your FastAPI server address
     download_links = {
@@ -37,6 +39,7 @@ def get_download_links(filename: str) -> dict:
         "brf": f"{base_url}/download/outputs/{filename}(transcription).brf"
     }
     return download_links
+
 
 def get_response_content(filename: str, transcription: str, brf: str, pef: str) -> Dict[str, str]:
     download_links = get_download_links(filename)
@@ -47,23 +50,25 @@ def get_response_content(filename: str, transcription: str, brf: str, pef: str) 
     }
     return response_content
 
+
 @app.get('/')
 async def root():
     return {
         'ASR API': 'Active'
     }
 
+
 @app.post('/transcribe/audio')
 async def transcribe_audio(file: UploadFile = File(...)):
     try:
         # Ensure the directory exists; create it if necessary
         os.makedirs(OUTPUTDIR, exist_ok=True)
-        
+
         # Save the uploaded file to the specified directory
         file_path = os.path.join(AUDIODIR, file.filename)
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
-        
+
         # Check file extension and process accordingly
         name, ext = os.path.splitext(file_path)
         if ext == ".mp3":
@@ -71,184 +76,172 @@ async def transcribe_audio(file: UploadFile = File(...)):
             file_path = MP32Wav(file_path, OUTPUTDIR, f"{name}.wav")
             if not file_path:
                 return {"error": "Failed to convert MP3 to WAV"}
-        
+
         # Transcribe audio file
-        transcription = asr_model.transcribe_file(file_path).lower()
+        transcription = asr_model.transcribe_file(file_path)
+        transcription = transcription.lower()
+        brf, pef = convert_to_braille(transcription)
 
         new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
         shutil.move(file_path, new_file_path)
 
-        name, _ = os.path.splitext(file.filename) 
+        name, _ = os.path.splitext(file.filename)
 
         docx_filename = os.path.join(OUTPUTDIR, name + '(transcription).doc')
         pef_filename = os.path.join(OUTPUTDIR, name + '(transcription).pef')
         brf_filename = os.path.join(OUTPUTDIR, name + '(transcription).brf')
 
         create_word_document(docx_filename, transcription)
-
-        brf_text = brl.translate(transcription)
-        pef_text = brl.toUnicodeSymbols(brf_text, flatten=True)
-
-        create_pef_file(pef_filename, pef_text)
-        create_brf_file(brf_filename, brf_text)
+        create_pef_file(pef_filename, pef)
+        create_brf_file(brf_filename, brf)
 
         os.remove(new_file_path)
 
-        response_content = get_response_content(name, transcription, brf_text, pef_text)
+        response_content = get_response_content(name, transcription, brf, pef)
 
         return JSONResponse(content=response_content)
-    
+
     except Exception as e:
         print(f"Error processing file: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 @app.post(f'/transcribe/video')
 async def transcribe_video(file: UploadFile = File(...)):
     try:
         os.makedirs(OUTPUTDIR, exist_ok=True)
-        
+
         file_path = os.path.join(AUDIODIR, file.filename)
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
-        
+
         name, ext = os.path.splitext(file_path)
         if ext == ".mp4":
             file_path = Video2Wav(file_path, OUTPUTDIR, f"{name}.wav")
             if not file_path:
                 return {"error": "Failed to convert MP4 to WAV"}
 
-        transcripted_text = asr_model.transcribe_file(file_path).lower()
+        transcripted_text = asr_model.transcribe_file(file_path)
+        transcripted_text = transcripted_text.lower()
+        brf, pef = convert_to_braille(transcripted_text)
 
         new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
         shutil.move(file_path, new_file_path)
 
-        name, _ = os.path.splitext(file.filename) 
+        name, _ = os.path.splitext(file.filename)
 
         docx_filename = os.path.join(OUTPUTDIR, name + '(transcription).doc')
         pef_filename = os.path.join(OUTPUTDIR, name + '(transcription).pef')
         brf_filename = os.path.join(OUTPUTDIR, name + '(transcription).brf')
 
         create_word_document(docx_filename, transcripted_text)
-
-        brf_text = brl.translate(transcripted_text)
-        pef_text = brl.toUnicodeSymbols(brf_text, flatten=True)
-
-        create_pef_file(pef_filename, pef_text)
-        create_brf_file(brf_filename, brf_text)
+        create_pef_file(pef_filename, pef)
+        create_brf_file(brf_filename, brf)
 
         os.remove(new_file_path)
 
-        response_content = get_response_content(name, transcripted_text, brf_text, pef_text)
+        response_content = get_response_content(name, transcripted_text, brf, pef)
 
         return JSONResponse(content=response_content)
-    
+
     except Exception as e:
         print(f"Error processing file: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 @app.post('/transcribe/image')
 async def transcribe_image(file: UploadFile = File(...)):
     try:
         os.makedirs(OUTPUTDIR, exist_ok=True)
-        
+
         file_path = os.path.join(OUTPUTDIR, file.filename)
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
-        
+
         name, ext = os.path.splitext(file_path)
 
         transcripted_text = perform_ocr(file_path, reader)
+        brf, pef = convert_to_braille(transcripted_text)
 
         new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
         shutil.move(file_path, new_file_path)
 
-        name, _ = os.path.splitext(file.filename) 
+        name, _ = os.path.splitext(file.filename)
 
         docx_filename = os.path.join(OUTPUTDIR, name + '(transcription).doc')
         pef_filename = os.path.join(OUTPUTDIR, name + '(transcription).pef')
         brf_filename = os.path.join(OUTPUTDIR, name + '(transcription).brf')
 
         create_word_document(docx_filename, transcripted_text)
-
-        brf_text = brl.translate(transcripted_text)
-        pef_text = brl.toUnicodeSymbols(brf_text, flatten=True)
-
-        create_pef_file(pef_filename, pef_text)
-        create_brf_file(brf_filename, brf_text)
+        create_pef_file(pef_filename, pef)
+        create_brf_file(brf_filename, brf)
 
         os.remove(new_file_path)
 
-        response_content = get_response_content(name, transcripted_text, brf_text, pef_text)
+        response_content = get_response_content(name, transcripted_text, brf, pef)
 
         return JSONResponse(content=response_content)
-    
+
     except Exception as e:
         print(f"Error processing file: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@app.post('/transcribe/docs') 
-async def transcribe_documents(file: UploadFile = File(...)): 
-    
+
+@app.post('/transcribe/docs')
+async def transcribe_documents(file: UploadFile = File(...)):
     try:
         os.makedirs(OUTPUTDIR, exist_ok=True)
-        
+
         file_path = os.path.join(OUTPUTDIR, file.filename)
         with open(file_path, 'wb') as file_output:
             file_output.write(file.file.read())
-        
+
         name, ext = os.path.splitext(file_path)
 
         transcripted_text = extract_text_from_file(file_path)
+        brf, pef = convert_to_braille(transcripted_text)
 
         new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
         shutil.move(file_path, new_file_path)
 
-        name, _ = os.path.splitext(file.filename) 
+        name, _ = os.path.splitext(file.filename)
 
         docx_filename = os.path.join(OUTPUTDIR, name + '(transcription).doc')
         pef_filename = os.path.join(OUTPUTDIR, name + '(transcription).pef')
         brf_filename = os.path.join(OUTPUTDIR, name + '(transcription).brf')
 
         create_word_document(docx_filename, transcripted_text)
-
-        brf_text = brl.translate(transcripted_text)
-        pef_text = brl.toUnicodeSymbols(brf_text, flatten=True)
-
-        create_pef_file(pef_filename, pef_text)
-        create_brf_file(brf_filename, brf_text)
+        create_pef_file(pef_filename, pef)
+        create_brf_file(brf_filename, brf)
 
         os.remove(new_file_path)
 
-        response_content = get_response_content(name, transcripted_text, brf_text, pef_text)
+        response_content = get_response_content(name, transcripted_text, brf, pef)
 
         return JSONResponse(content=response_content)
-    
+
     except Exception as e:
         print(f"Error processing file: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    
+
+
 @app.post('/transcribe/text')
-async def transcribe_text(request_data: dict):
-    if 'input_string' not in request_data:
-        raise HTTPException(status_code=400, detail="Input string not provided")
+async def transcribe_text(input_string: str):
+    brf, pef = convert_to_braille(input_string)
 
-    input_string = request_data['input_string']
-
-    docx_filename = os.path.join(OUTPUTDIR, 'text_input' + '(transcription).doc')
-    pef_filename = os.path.join(OUTPUTDIR, 'text_input' + '(transcription).pef')
-    brf_filename = os.path.join(OUTPUTDIR, 'text_input' + '(transcription).brf')
+    name = 'text_input'
+    docx_filename = os.path.join(OUTPUTDIR, name + '(transcription).doc')
+    pef_filename = os.path.join(OUTPUTDIR, name + '(transcription).pef')
+    brf_filename = os.path.join(OUTPUTDIR, name + '(transcription).brf')
 
     create_word_document(docx_filename, input_string)
+    create_pef_file(pef_filename, pef)
+    create_brf_file(brf_filename, brf)
 
-    brf_text = brl.translate(input_string)
-    pef_text = brl.toUnicodeSymbols(brf_text, flatten=True)
-
-    create_pef_file(pef_filename, pef_text)
-    create_brf_file(brf_filename, brf_text)
-
-    response_content = get_response_content('text_input', input_string, brf_text, pef_text)
+    response_content = get_response_content(name, input_string, brf, pef)
 
     return JSONResponse(content=response_content)
+
 
 @app.get('/download/outputs/{file_path:path}')
 async def download_file(file_path: str):
@@ -256,5 +249,4 @@ async def download_file(file_path: str):
     if not os.path.isfile(file_full_path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_full_path,
-                       background = BackgroundTask(os.remove,file_full_path) #deletes temp file after download.
-                    )
+                        background=BackgroundTask(os.remove, file_full_path))  # deletes temp file after download.
