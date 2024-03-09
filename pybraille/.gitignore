@@ -1,9 +1,0 @@
-.DS_Store
-*.pyc
-misc/
-*.xcworkspace
-pdfminer/
-_exceptions.log
-__pycache__
-.ipynb_checkpoints
-pybrl.egg-info/
