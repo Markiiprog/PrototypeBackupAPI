@@ -226,7 +226,12 @@ async def transcribe_documents(file: UploadFile = File(...)):
 
 
 @app.post('/transcribe/text')
-async def transcribe_text(input_string: str):
+async def transcribe_text(request_data: dict):
+    if 'input_string' not in request_data:
+        raise HTTPException(status_code=400, detail="Input string not provided")
+
+    input_string = request_data['input_string']
+    
     brf, pef = convert_to_braille(input_string)
 
     name = 'text_input'
