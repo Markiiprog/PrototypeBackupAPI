@@ -32,7 +32,7 @@ AUDIODIR = 'audio_cache/'
 
 
 def get_download_links(filename: str) -> dict:
-    base_url = "http://34.142.200.21:8000"  # Change this to your FastAPI server address
+    base_url = "http://34.126.91.78:8000"  # Change this to your FastAPI server address
     download_links = {
         "doc": f"{base_url}/download/outputs/{filename}(transcription).doc",
         "pef": f"{base_url}/download/outputs/{filename}(transcription).pef",

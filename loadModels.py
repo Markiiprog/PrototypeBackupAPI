@@ -1,7 +1,7 @@
 import easyocr
 import speechbrain as sb
-from speechbrain.pretrained import EncoderDecoderASR
-
+# from speechbrain.pretrained import EncoderDecoderASR
+from speechbrain.inference.ASR import EncoderDecoderASR
 
 #To remove GPU Util remove gpu=True and run_opts = {"device":"cuda"}
 
