@@ -222,7 +222,7 @@ async def transcribe_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@app.post('/transcribe/document')
+@app.post('/transcribe/docs')
 async def transcribe_documents(file: UploadFile = File(...)):
     try:
         os.makedirs(OUTPUTDIR, exist_ok=True)
