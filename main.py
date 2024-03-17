@@ -106,7 +106,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         os.remove(new_file_path)
         os.remove(f"{name}.wav")
 
-        response_content = get_response_content(name, transcription,pef_g1,pef_g2)
+        response_content = get_response_content(name, transcription.lower() ,pef_g1,pef_g2)
 
         #returnJSON with braille and transcription
         return JSONResponse(content=response_content)
