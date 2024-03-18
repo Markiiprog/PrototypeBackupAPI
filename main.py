@@ -161,7 +161,7 @@ async def transcribe_video(file: UploadFile = File(...)):
         
         os.remove(new_file_path)
         os.remove(f"{name}.wav")
-        response_content = get_response_content(name, transcripted_text,pef_g1,pef_g2)
+        response_content = get_response_content(name, transcripted_text.lower() ,pef_g1,pef_g2)
 
         #return JSON with braille and transcription
         return JSONResponse(content=response_content)
