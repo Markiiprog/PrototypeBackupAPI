@@ -1,6 +1,6 @@
 import easyocr
 import cv2
- 
+
 def perform_ocr(image_path,reader):
     
     recognized_text =""
@@ -21,10 +21,9 @@ def perform_ocr(image_path,reader):
                                horizontal_list=text_coordinates,
                                free_list=[],
                                detail=0,
-                               batch_size = 16
+                               batch_size = 16,
+                               paragraph = True
                                )
 
-    for result in results:
-        recognized_text += result + '\n'
-    
-    return recognized_text
+    final_results = " ".join(results)
+    return final_results
