@@ -34,7 +34,7 @@ AUDIODIR = 'audio_cache/'
 
 def get_download_links(filename: str) -> dict:
     # base_url = "http://localhost:8000"
-    base_url = "http://34.126.91.78:8000"  # Change this to your FastAPI server address
+    base_url = "http://35.201.225.45:8000"  # Change this to your FastAPI server address
     download_links = {
         "docx": f"{base_url}/download/outputs/{filename}(transcription).doc",
         "pef_g1": f"{base_url}/download/outputs/{filename}(transcription).pef",
@@ -222,43 +222,6 @@ async def transcribe_image(file: UploadFile = File(...)):
         # Raise an HTTPException with a 500 status code
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-
-@app.post('/transcribe/docs')
-async def transcribe_documents(file: UploadFile = File(...)):
-    try:
-        os.makedirs(OUTPUTDIR, exist_ok=True)
-
-        file_path = os.path.join(OUTPUTDIR, file.filename)
-        with open(file_path, 'wb') as file_output:
-            file_output.write(file.file.read())
-
-        name, ext = os.path.splitext(file_path)
-
-        transcripted_text = extract_text_from_file(file_path)
-        brf, pef = convert_to_braille(transcripted_text)
-
-        new_file_path = os.path.join(OUTPUTDIR, os.path.basename(file_path))
-        shutil.move(file_path, new_file_path)
-
-        name, _ = os.path.splitext(file.filename)
-
-        docx_filename = os.path.join(OUTPUTDIR, name + '(transcription).doc')
-        pef_filename = os.path.join(OUTPUTDIR, name + '(transcription).pef')
-        brf_filename = os.path.join(OUTPUTDIR, name + '(transcription).brf')
-
-        create_word_document(docx_filename, transcripted_text)
-        create_pef_file(pef_filename, pef)
-        create_brf_file(brf_filename, brf)
-
-        os.remove(new_file_path)
-
-        response_content = get_response_content(name, transcripted_text, brf, pef)
-
-        return JSONResponse(content=response_content)
-
-    except Exception as e:
-        print(f"Error processing file: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
 @app.post('/transcribe/document') 
 async def transcribe_documents(file: UploadFile = File(...)): 
     

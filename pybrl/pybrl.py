@@ -86,6 +86,7 @@ unicode = six.text_type
 importedAlphabets = {}
 importedContractions = {}
 importedSpecials = {}
+importedSymbols = {}
 supportedSymbols = {}
 _orderedSplitters = []
 _Specials = [u'“',u'”',u'$',u'"',u'\'',u'»',u'«', '$dollar', '$quote_open', '$quote_close', '$shape', '$emph', '$accent', '$decimal', '$comma', '$triple_dot', '$cross_mult', '$dot_mult', '$div', '$sqrt', '$underline']

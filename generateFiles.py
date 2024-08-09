@@ -41,7 +41,7 @@ def format_content(content, line_length=40, lines_per_page=24):
     # Add the last line if it exists
     if current_line:
         formatted_content.append(current_line)
-
+    
     return '\n'.join(formatted_content)
 
 def create_pef_file(file_name, content):
@@ -50,6 +50,7 @@ def create_pef_file(file_name, content):
         with open(file_name, 'w', encoding='utf-8') as file:
             file.write(formatted_content)
         print(f"Braille Ready File '{file_name}' created successfully.")
+        
     except Exception as e:
         print(f"Error creating Braille Ready File: {e}")
 
@@ -59,5 +60,6 @@ def create_brf_file(file_name, content):
         with open(file_name, 'w') as file:
             file.write(formatted_content)
         print(f"Braille Ready File '{file_name}' created successfully.")
+        
     except Exception as e:
         print(f"Error creating Braille Ready File: {e}")
